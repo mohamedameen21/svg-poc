@@ -10,6 +10,10 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
+Route::get('svg-sanitizer-enhanced', function () {
+    return Inertia::render('svg-sanitizer-enhanced');
+})->name('svg-sanitizer-enhanced');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
         return Inertia::render('dashboard');
