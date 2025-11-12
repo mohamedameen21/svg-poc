@@ -10,13 +10,6 @@ use Illuminate\Support\Facades\Log;
 
 class SvgSanitizerService
 {
-    // private const LOGO_KEYWORDS = [
-    //     'logo', 'brand', 'emblem', 'crest', 'shield', 'badge', 'text', 'ball',
-    //     'watermark', 'inter', 'milan', 'atletico', 'madrid', 'barcelona', 'real',
-    //     'juventus', 'bayern', 'liverpool', 'manchester', 'chelsea', 'arsenal',
-    //     'tottenham', 'psg', 'dortmund', 'white', 'giuseppe', 'meazza', 'siro', 'svg-pan-zoom'
-    // ];
-
     private const LOGO_KEYWORDS = [
         'logo', 'brand', 'watermark', 'svg-pan-zoom'
     ];
@@ -510,96 +503,6 @@ class SvgSanitizerService
         return sprintf('#%02x%02x%02x', $rgb[0], $rgb[1], $rgb[2]);
     }
 
-    private function applyColorMapping(DOMDocument $dom, DOMXPath $xpath, array $colorMapping): void
-    {
-        // Normalize all color mappings
-        $normalizedMapping = [];
-        foreach ($colorMapping as $source => $target) {
-            $sourceNorm = $this->normalizeColor($source);
-            $targetNorm = $this->normalizeColor($target);
-            if ($sourceNorm && $targetNorm) {
-                $normalizedMapping[$sourceNorm] = $targetNorm;
-            }
-        }
-
-        // Transform fill attributes
-        $elementsWithFill = $xpath->query('//*[@fill]');
-        foreach ($elementsWithFill as $element) {
-            $fill = $element->getAttribute('fill');
-            if ($fill !== 'none' && !empty($fill)) {
-                $normalized = $this->normalizeColor($fill);
-                if ($normalized && isset($normalizedMapping[$normalized])) {
-                    $element->setAttribute('fill', $normalizedMapping[$normalized]);
-                }
-            }
-        }
-
-        // Transform stroke attributes
-        $elementsWithStroke = $xpath->query('//*[@stroke]');
-        foreach ($elementsWithStroke as $element) {
-            $stroke = $element->getAttribute('stroke');
-            if ($stroke !== 'none' && !empty($stroke)) {
-                $normalized = $this->normalizeColor($stroke);
-                if ($normalized && isset($normalizedMapping[$normalized])) {
-                    $element->setAttribute('stroke', $normalizedMapping[$normalized]);
-                }
-            }
-        }
-
-        // Transform style attributes
-        $elementsWithStyle = $xpath->query('//*[@style]');
-        foreach ($elementsWithStyle as $element) {
-            $style = $element->getAttribute('style');
-            $newStyle = $this->replaceColorsInStyle($style, $normalizedMapping);
-            $element->setAttribute('style', $newStyle);
-        }
-
-        // Transform CSS in <style> tags
-        $styleTags = $dom->getElementsByTagName('style');
-        foreach ($styleTags as $styleTag) {
-            $css = $styleTag->textContent;
-            $newCss = $this->replaceColorsInCss($css, $normalizedMapping);
-            $styleTag->textContent = $newCss;
-        }
-    }
-
-    private function replaceColorsInStyle(string $style, array $colorMapping): string
-    {
-        return preg_replace_callback(
-            '/(fill|stroke|color|background-color):\s*([^;]+);?/i',
-            function ($matches) use ($colorMapping) {
-                $property = $matches[1];
-                $color = trim($matches[2]);
-                if ($color !== 'none' && !empty($color)) {
-                    $normalized = $this->normalizeColor($color);
-                    if ($normalized && isset($colorMapping[$normalized])) {
-                        return "{$property}: {$colorMapping[$normalized]};";
-                    }
-                }
-                return $matches[0];
-            },
-            $style
-        );
-    }
-
-    private function replaceColorsInCss(string $css, array $colorMapping): string
-    {
-        return preg_replace_callback(
-            '/(fill|stroke|color|background-color):\s*([^;}]+)/i',
-            function ($matches) use ($colorMapping) {
-                $property = $matches[1];
-                $color = trim($matches[2]);
-                if ($color !== 'none' && !empty($color)) {
-                    $normalized = $this->normalizeColor($color);
-                    if ($normalized && isset($colorMapping[$normalized])) {
-                        return "{$property}: {$colorMapping[$normalized]}";
-                    }
-                }
-                return $matches[0];
-            },
-            $css
-        );
-    }
 
     public function sanitizeFromString(string $svgContent, ?string $colorScheme = null, array $colorMapping = []): array
     {
